@@ -48,14 +48,10 @@
 	
 	var React = __webpack_require__(1),
 	    ReactDOM = __webpack_require__(38),
-	    BenchStore = window.store = __webpack_require__(168);
+	    Search = __webpack_require__(196);
 	
 	$(function () {
-	  return ReactDOM.render(React.createElement(
-	    'div',
-	    null,
-	    'hello from the dom'
-	  ), document.getElementById('root'));
+	  return ReactDOM.render(React.createElement(Search, null), document.getElementById('root'));
 	});
 
 /***/ },
@@ -20358,7 +20354,8 @@
 	'use strict';
 	
 	var Store = __webpack_require__(173).Store,
-	    Dispatcher = __webpack_require__(169);
+	    Dispatcher = __webpack_require__(169),
+	    BenchConstants = __webpack_require__(192);
 	
 	var _benches = {};
 	
@@ -20366,12 +20363,11 @@
 	
 	BenchStore.resetAllBenches = function (newBenches) {
 	  _benches = newBenches;
+	  this.__emitChange();
 	};
 	
 	BenchStore.all = function () {
 	  var allBenches = {};
-	
-	  // allBenches.assign(_benches);
 	
 	  Object.keys(_benches).forEach(function (benchId) {
 	    var benchCopy = JSON.parse(JSON.stringify(_benches[benchId]));
@@ -20379,6 +20375,16 @@
 	  });
 	
 	  return allBenches;
+	};
+	
+	BenchStore.__onDispatch = function (payload) {
+	  switch (payload.actionType) {
+	    case BenchConstants.BENCHES_RECEIVED:
+	      BenchStore.resetAllBenches(payload.benches);
+	      break;
+	    default:
+	
+	  }
 	};
 	
 	module.exports = BenchStore;
@@ -27142,6 +27148,239 @@
 	
 	module.exports = FluxMixinLegacy;
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(3)))
+
+/***/ },
+/* 190 */
+/***/ function(module, exports) {
+
+	'use strict';
+	
+	module.exports = {
+	  fetchAllBenches: function fetchAllBenches(bounds, callback) {
+	    $.ajax({
+	      url: 'api/benches',
+	      data: bounds,
+	      success: callback
+	    });
+	  },
+	
+	  createBench: function createBench(callback) {
+	    $.post({
+	      url: 'api/benches',
+	      data: {
+	        bench: {
+	          description: "Bench found in the bay",
+	          lat: 37.794680,
+	          lng: -122.397546
+	        }
+	      },
+	      success: callback
+	    });
+	  }
+	};
+
+/***/ },
+/* 191 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var BenchAPIUtil = __webpack_require__(190),
+	    BenchConstants = __webpack_require__(192),
+	    Dispatcher = __webpack_require__(169);
+	
+	var BenchActions = {
+	  receiveAllBenches: function receiveAllBenches(benches) {
+	    var payload = {
+	      actionType: BenchConstants.BENCHES_RECEIVED,
+	      benches: benches
+	    };
+	    Dispatcher.dispatch(payload);
+	  },
+	
+	  fetchAllBenches: function fetchAllBenches(bounds) {
+	    BenchAPIUtil.fetchAllBenches(bounds, this.receiveAllBenches);
+	  }
+	};
+	
+	module.exports = BenchActions;
+
+/***/ },
+/* 192 */
+/***/ function(module, exports) {
+
+	"use strict";
+	
+	var BenchConstants = {
+	  BENCHES_RECEIVED: "BENCHES_RECEIVED"
+	};
+	
+	module.exports = BenchConstants;
+
+/***/ },
+/* 193 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var React = __webpack_require__(1),
+	    BenchStore = __webpack_require__(168),
+	    BenchIndexItem = __webpack_require__(194),
+	    BenchActions = __webpack_require__(191);
+	
+	var BenchIndex = React.createClass({
+	  displayName: 'BenchIndex',
+	
+	  getInitialState: function getInitialState() {
+	    return { benches: BenchStore.all() };
+	  },
+	
+	  componentDidMount: function componentDidMount() {
+	    this.listener = BenchStore.addListener(this._onChange);
+	  },
+	
+	  componentWillUnmount: function componentWillUnmount() {
+	    this.listener.remove();
+	  },
+	
+	  _onChange: function _onChange() {
+	    this.setState({ benches: BenchStore.all() });
+	  },
+	
+	  render: function render() {
+	    var _this = this;
+	
+	    return React.createElement(
+	      'div',
+	      null,
+	      Object.keys(this.state.benches).map(function (benchId) {
+	        return React.createElement(BenchIndexItem, { key: benchId, bench: _this.state.benches[benchId] });
+	      })
+	    );
+	  }
+	});
+	
+	module.exports = BenchIndex;
+
+/***/ },
+/* 194 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var React = __webpack_require__(1);
+	
+	var BenchIndexItem = React.createClass({
+	  displayName: 'BenchIndexItem',
+	
+	  render: function render() {
+	    return React.createElement(
+	      'div',
+	      null,
+	      this.props.bench.description
+	    );
+	  }
+	});
+	
+	module.exports = BenchIndexItem;
+
+/***/ },
+/* 195 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var React = __webpack_require__(1),
+	    ReactDOM = __webpack_require__(38),
+	    BenchStore = __webpack_require__(168),
+	    BenchActions = __webpack_require__(191);
+	
+	var BenchMap = React.createClass({
+	  displayName: 'BenchMap',
+	
+	  getInitialState: function getInitialState() {
+	    return { benches: BenchStore.all() };
+	  },
+	
+	  componentDidMount: function componentDidMount() {
+	    var _this = this;
+	
+	    BenchStore.addListener(this._onChange);
+	    // create map
+	    var mapDOMNode = ReactDOM.findDOMNode(this.refs.map);
+	    var mapOptions = {
+	      center: { lat: 37.7758, lng: -122.435 }, // this is SF
+	      zoom: 13
+	    };
+	    this.map = new google.maps.Map(mapDOMNode, mapOptions);
+	
+	    google.maps.event.addListener(this.map, 'idle', function () {
+	      var bounds = _this.map.getBounds();
+	      console.log({ bounds: bounds });
+	      BenchActions.fetchAllBenches({ bounds: bounds });
+	      // alert('map has moved, check console to see updated bounds')
+	      // console.log('center');
+	      // console.log(bounds.getCenter().lat(), bounds.getCenter().lng());
+	      // console.log("north east");
+	      // console.log(bounds.getNorthEast().lat(), bounds.getNorthEast().lng());
+	      // console.log("south west");
+	      // console.log(bounds.getSouthWest().lat(), bounds.getSouthWest().lng());
+	    });
+	  },
+	
+	
+	  _onChange: function _onChange(benches) {
+	    this.setState({ benches: BenchStore.all() });
+	    Object.keys(this.state.benches).forEach(this._placeMarkers);
+	  },
+	
+	  _placeMarkers: function _placeMarkers(benchId) {
+	    var bench = this.state.benches[benchId];
+	
+	    var pos = new google.maps.LatLng(bench.lat, bench.lng);
+	    //then we use our new instance of LatLng to make a marker
+	    var marker = new google.maps.Marker({
+	      position: pos,
+	      //set map to this.map, this is what adds it to the map
+	      //when we want to remove this marker, we need to set its
+	      //map property to null using myMarker.setMap(null)
+	      map: this.map
+	    });
+	  },
+	
+	  render: function render() {
+	    return React.createElement('div', { className: 'map', ref: 'map' });
+	  }
+	});
+	
+	module.exports = BenchMap;
+	
+	// AIzaSyDqxAV9Na87a-IodJlt_wfGIGzjhziDvMQ
+
+/***/ },
+/* 196 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var React = __webpack_require__(1),
+	    BenchIndex = __webpack_require__(193),
+	    BenchMap = __webpack_require__(195);
+	
+	var Search = React.createClass({
+	  displayName: 'Search',
+	
+	  render: function render() {
+	    return React.createElement(
+	      'div',
+	      null,
+	      React.createElement(BenchIndex, null),
+	      React.createElement(BenchMap, null)
+	    );
+	  }
+	});
+	
+	module.exports = Search;
 
 /***/ }
 /******/ ]);

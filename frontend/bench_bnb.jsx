@@ -1,10 +1,10 @@
 const React = require('react'),
       ReactDOM = require('react-dom'),
-      BenchStore = window.store = require('./stores/bench_store');
+      Search = require('./components/search');
 
 $(
   () => ReactDOM.render(
-    <div>hello from the dom</div>,
+    <Search />,
     document.getElementById('root')
   )
 );
