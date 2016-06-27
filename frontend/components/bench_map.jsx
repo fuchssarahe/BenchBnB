@@ -1,3 +1,4 @@
+import { hashHistory } from 'react-router';
 const React = require('react'),
       ReactDOM = require('react-dom'),
       BenchStore = require('../stores/bench_store'),
@@ -34,9 +35,12 @@ const BenchMap = React.createClass({
           lng: bounds.getSouthWest().lng()
         }
       };
+
       this.bounds = processedBounds;
       BenchActions.fetchAllBenches(processedBounds);
     });
+
+    google.maps.event.addListener(this.map, 'click', this._handleClick);
   },
 
   _onChange: function (benches) {
@@ -83,6 +87,14 @@ const BenchMap = React.createClass({
     }
 
     return false;
+  },
+
+  _handleClick: function (event) {
+    const coords = { lat: event.latLng.lat(), lng: event.latLng.lng() };
+    hashHistory.push({
+      pathname: "/benches/new",
+      query: coords
+    })
   },
 
   render: function () {

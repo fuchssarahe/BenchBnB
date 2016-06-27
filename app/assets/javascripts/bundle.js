@@ -51,7 +51,8 @@
 	var React = __webpack_require__(1),
 	    ReactDOM = __webpack_require__(38),
 	    App = __webpack_require__(254),
-	    Search = __webpack_require__(168);
+	    Search = __webpack_require__(168),
+	    BenchForm = __webpack_require__(255);
 	
 	var router = React.createElement(
 	  _reactRouter.Router,
@@ -59,7 +60,8 @@
 	  React.createElement(
 	    _reactRouter.Route,
 	    { path: '/', component: App },
-	    React.createElement(_reactRouter.IndexRoute, { component: Search })
+	    React.createElement(_reactRouter.IndexRoute, { component: Search }),
+	    React.createElement(_reactRouter.Route, { path: '/benches/new', component: BenchForm })
 	  )
 	);
 	
@@ -27239,7 +27241,8 @@
 	"use strict";
 	
 	var BenchConstants = {
-	  BENCHES_RECEIVED: "BENCHES_RECEIVED"
+	  BENCHES_RECEIVED: "BENCHES_RECEIVED",
+	  BENCH_RECEIVED: "BENCH_RECEIVED"
 	};
 	
 	module.exports = BenchConstants;
@@ -27287,6 +27290,18 @@
 	
 	  fetchAllBenches: function fetchAllBenches(bounds) {
 	    BenchAPIUtil.fetchAllBenches({ bounds: bounds }, this.receiveAllBenches);
+	  },
+	
+	  receiveSingleBench: function receiveSingleBench(bench) {
+	    var payload = {
+	      actionType: BenchConstants.BENCH_RECEIVED,
+	      bench: bench
+	    };
+	    Dispatcher.dispatch(payload);
+	  },
+	
+	  createBench: function createBench(bench) {
+	    BenchAPIUtil.createBench(bench, this.receiveSingleBench);
 	  }
 	};
 	
@@ -27298,7 +27313,7 @@
 
 	'use strict';
 	
-	module.exports = {
+	module.exports = window.util = {
 	  fetchAllBenches: function fetchAllBenches(bounds, callback) {
 	    $.ajax({
 	      url: 'api/benches',
@@ -27307,16 +27322,11 @@
 	    });
 	  },
 	
-	  createBench: function createBench(callback) {
-	    $.post({
+	  createBench: function createBench(bench, callback) {
+	    $.ajax({
+	      type: 'POST',
 	      url: 'api/benches',
-	      data: {
-	        bench: {
-	          description: "Bench found in the bay",
-	          lat: 37.794680,
-	          lng: -122.397546
-	        }
-	      },
+	      data: { bench: bench },
 	      success: callback
 	    });
 	  }
@@ -27327,6 +27337,8 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
+	
+	var _reactRouter = __webpack_require__(197);
 	
 	var React = __webpack_require__(1),
 	    ReactDOM = __webpack_require__(38),
@@ -27368,9 +27380,12 @@
 	          lng: bounds.getSouthWest().lng()
 	        }
 	      };
+	
 	      _this.bounds = processedBounds;
 	      BenchActions.fetchAllBenches(processedBounds);
 	    });
+	
+	    google.maps.event.addListener(this.map, 'click', this._handleClick);
 	  },
 	
 	
@@ -27415,6 +27430,14 @@
 	    }
 	
 	    return false;
+	  },
+	
+	  _handleClick: function _handleClick(event) {
+	    var coords = { lat: event.latLng.lat(), lng: event.latLng.lng() };
+	    _reactRouter.hashHistory.push({
+	      pathname: "/benches/new",
+	      query: coords
+	    });
 	  },
 	
 	  render: function render() {
@@ -32547,6 +32570,92 @@
 	});
 	
 	module.exports = App;
+
+/***/ },
+/* 255 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var React = __webpack_require__(1),
+	    BenchActions = __webpack_require__(194);
+	
+	var BenchForm = React.createClass({
+	  displayName: 'BenchForm',
+	
+	  getInitialState: function getInitialState() {
+	    return { description: "", num_of_seats: "", lat: this.props.location.query.lat, lng: this.props.location.query.lng };
+	  },
+	
+	  _handleSubmit: function _handleSubmit() {
+	    var bench = {
+	      description: this.state.description,
+	      numberOfSeats: parseInt(this.state.numberOfSeats),
+	      lat: parseFloat(this.state.lat),
+	      lng: parseFloat(this.state.lng)
+	    };
+	    BenchActions.createBench(bench);
+	  },
+	
+	  _updateDescription: function _updateDescription(event) {
+	    this.setState({ description: event.target.value });
+	  },
+	
+	  _updateNumberOfSeats: function _updateNumberOfSeats(event) {
+	    this.setState({ numberOfSeats: event.target.value });
+	  },
+	
+	  _updateLatitude: function _updateLatitude(event) {
+	    this.setState({ lat: event.target.value });
+	  },
+	
+	  _updateLongitude: function _updateLongitude(event) {
+	    this.setState({ lng: event.target.value });
+	  },
+	
+	  render: function render() {
+	    return React.createElement(
+	      'form',
+	      { onSubmit: this._handleSubmit },
+	      React.createElement(
+	        'label',
+	        null,
+	        'Description',
+	        React.createElement('input', { type: 'text',
+	          value: this.state.description,
+	          onChange: this._updateDescription })
+	      ),
+	      React.createElement(
+	        'label',
+	        null,
+	        'Number Of Seats',
+	        React.createElement('input', { type: 'text',
+	          value: this.state.numberOfSeats,
+	          onChange: this._updateNumberOfSeats })
+	      ),
+	      React.createElement(
+	        'label',
+	        null,
+	        'Latitude',
+	        React.createElement('input', { type: 'text',
+	          value: this.state.lat,
+	          onChange: this._updateLatitude })
+	      ),
+	      React.createElement(
+	        'label',
+	        null,
+	        'Longitude',
+	        React.createElement('input', { type: 'text',
+	          value: this.state.lng,
+	          onChange: this._updateLongitude })
+	      ),
+	      React.createElement('input', { type: 'submit',
+	        value: 'Submit!' })
+	    );
+	  }
+	});
+	
+	module.exports = BenchForm;
 
 /***/ }
 /******/ ]);

@@ -1,4 +1,6 @@
-module.exports = {
+
+
+module.exports = window.util = {
   fetchAllBenches: function (bounds, callback) {
     $.ajax({
       url: 'api/benches',
@@ -7,16 +9,11 @@ module.exports = {
     });
   },
 
-  createBench: function (callback) {
-    $.post({
+  createBench: function (bench, callback) {
+    $.ajax({
+      type: 'POST',
       url: 'api/benches',
-      data: {
-        bench: {
-          description: "Bench found in the bay",
-          lat: 37.794680,
-          lng: -122.397546
-        }
-      },
+      data: { bench: bench },
       success: callback,
     });
   }

@@ -13,6 +13,18 @@ const BenchActions = {
 
   fetchAllBenches: function (bounds) {
     BenchAPIUtil.fetchAllBenches({bounds: bounds}, this.receiveAllBenches)
+  },
+
+  receiveSingleBench: function (bench) {
+    const payload = {
+      actionType: BenchConstants.BENCH_RECEIVED,
+      bench: bench
+    }
+    Dispatcher.dispatch(payload);
+  },
+
+  createBench: function (bench) {
+    BenchAPIUtil.createBench(bench, this.receiveSingleBench)
   }
 }
 
