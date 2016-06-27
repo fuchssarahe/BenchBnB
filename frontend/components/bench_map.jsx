@@ -5,10 +5,12 @@ const React = require('react'),
 
 const BenchMap = React.createClass({
   getInitialState: function () {
-    return { benches: BenchStore.all() }
+    return { benches: BenchStore.all() };
   },
 
   componentDidMount(){
+    this.markers = {};
+
     BenchStore.addListener(this._onChange)
     // create map
     const mapDOMNode = ReactDOM.findDOMNode(this.refs.map);
@@ -20,24 +22,32 @@ const BenchMap = React.createClass({
 
     google.maps.event.addListener(this.map, 'idle', () => {
       const bounds = this.map.getBounds();
-      console.log({bounds: bounds});
-      BenchActions.fetchAllBenches({bounds: bounds});
-      // alert('map has moved, check console to see updated bounds')
-      // console.log('center');
-      // console.log(bounds.getCenter().lat(), bounds.getCenter().lng());
-      // console.log("north east");
-      // console.log(bounds.getNorthEast().lat(), bounds.getNorthEast().lng());
-      // console.log("south west");
-      // console.log(bounds.getSouthWest().lat(), bounds.getSouthWest().lng());
+
+      const processedBounds = {
+        NE: {
+          lat: bounds.getNorthEast().lat(),
+          lng: bounds.getNorthEast().lng()
+        },
+
+        SW: {
+          lat: bounds.getSouthWest().lat(),
+          lng: bounds.getSouthWest().lng()
+        }
+      };
+      this.bounds = processedBounds;
+      BenchActions.fetchAllBenches(processedBounds);
     });
   },
 
   _onChange: function (benches) {
-    this.setState( {benches: BenchStore.all()} )
-    Object.keys(this.state.benches).forEach(this._placeMarkers);
+    this.setState( { benches: BenchStore.all() } );
+    Object.keys(this.markers).forEach(this._removeBadMarker);
+    Object.keys(this.state.benches).forEach(this._placeMarker);
   },
 
-  _placeMarkers: function (benchId) {
+  _placeMarker: function (benchId) {
+    if (this.markers[benchId]) return;
+
     const bench = this.state.benches[benchId];
 
     const pos = new google.maps.LatLng(bench.lat, bench.lng)
@@ -49,8 +59,31 @@ const BenchMap = React.createClass({
             //map property to null using myMarker.setMap(null)
             map: this.map
           });
+    this.markers[benchId] = marker;
   },
 
+  _removeBadMarker: function (benchId) {
+    const marker = this.markers[benchId];
+
+    if (!this._isInBounds(marker)) {
+      marker.setMap(null);
+      delete this.markers[benchId];
+    }
+  },
+
+  _isInBounds: function (marker) {
+    const lat = marker.position.lat();
+    const lng = marker.position.lng();
+
+    if (lat >= this.bounds.SW.lat
+        && lat <= this.bounds.NE.lat
+          && lng >= this.bounds.SW.lng
+            && lng <= this.bounds.NE.lng) {
+      return true;
+    }
+
+    return false;
+  },
 
   render: function () {
     return (

@@ -12,7 +12,7 @@ const BenchActions = {
   },
 
   fetchAllBenches: function (bounds) {
-    BenchAPIUtil.fetchAllBenches(bounds, this.receiveAllBenches)
+    BenchAPIUtil.fetchAllBenches({bounds: bounds}, this.receiveAllBenches)
   }
 }
 
