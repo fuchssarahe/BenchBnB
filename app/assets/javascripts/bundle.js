@@ -27313,7 +27313,7 @@
 
 	'use strict';
 	
-	module.exports = window.util = {
+	module.exports = {
 	  fetchAllBenches: function fetchAllBenches(bounds, callback) {
 	    $.ajax({
 	      url: 'api/benches',

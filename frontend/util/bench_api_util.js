@@ -1,6 +1,4 @@
-
-
-module.exports = window.util = {
+module.exports = {
   fetchAllBenches: function (bounds, callback) {
     $.ajax({
       url: 'api/benches',
